@@ -1,10 +1,4 @@
 <?php
-/**
- * O Unzipper extrai arquivos .zip ou .rar e arquivos .gz em webservers.
- * É útil se você não tiver acesso a conchas. Por exemplo, se você quiser carregar muito
- * de arquivos (php framework ou coleção de imagens) como um arquivo para economizar tempo.
- * A partir da versão 0.1.0, ele também suporta a criação de arquivos.
- */
 
 define('VERSION', '0.1.1');
 
@@ -13,7 +7,7 @@ $GLOBALS['status'] = array();
 
 $unzipper = new Unzipper;
 if (isset($_POST['dounzip'])) {
-  //Verifique se um arquivo foi selecionado para descompactar.
+  
   $archive = isset($_POST['zipfile']) ? strip_tags($_POST['zipfile']) : '';
   $destination = isset($_POST['extpath']) ? strip_tags($_POST['extpath']) : '';
   $unzipper->prepareExtraction($archive, $destination);
@@ -21,7 +15,7 @@ if (isset($_POST['dounzip'])) {
 
 if (isset($_POST['dozip'])) {
   $zippath = !empty($_POST['zippath']) ? strip_tags($_POST['zippath']) : '.';
-  // Resultado zipfile, por exemplo, zíper-2016-07-23-11-55.zip.
+  
   $zipfile = 'zipper-' . date("Y-m-d--H-i") . '.zip';
   Zipper::zipDir($zippath, $zipfile);
 }
@@ -29,15 +23,12 @@ if (isset($_POST['dozip'])) {
 $timeend = microtime(TRUE);
 $time = round($timeend - $timestart, 4);
 
-/**
- * Unzipper classe
- */
 class Unzipper {
   public $localdir = '.';
   public $zipfiles = array();
 
   public function __construct() {
-    // Le diretórios e escolha .zip, .rar e arquivos .gz.
+  
     if ($dh = opendir($this->localdir)) {
       while (($file = readdir($dh)) !== FALSE) {
         if (pathinfo($file, PATHINFO_EXTENSION) === 'zip'
@@ -58,40 +49,26 @@ class Unzipper {
     }
   }
 
-/**
-   * Prepare e verifique o arquivo zip para extração.
-*
-   * $archive de cordas @param
-   * O nome do arquivo, incluindo extensão de arquivo. Por exemplo, my_archive.zip.
-   * $destination de cordas @param
-   * O caminho relativo de destino onde extrair arquivos.
-   */
+
   public function prepareExtraction($archive, $destination = '') {
-    // Determina caminhos.
+    
     if (empty($destination)) {
       $extpath = $this->localdir;
     }
     else {
       $extpath = $this->localdir . '/' . $destination;
-      // Todo: mova isso para a função de extração.
+     
       if (!is_dir($extpath)) {
         mkdir($extpath);
       }
     }
-    // Apenas arquivos locais existentes podem ser extraídos.
+  
     if (in_array($archive, $this->zipfiles)) {
       self::extract($archive, $extpath);
     }
   }
 
-  /**
-   * Verifica a extensão do arquivo e chama funções de extrator adequadas.
-   *
-   * $archive de cordas @param
-   * O nome do arquivo, incluindo extensão de arquivo. Por exemplo, my_archive.zip.
-   * $destination de cordas @param
-   * O caminho relativo de destino onde extrair arquivos.
-   */
+ 
   public static function extract($archive, $destination) {
     $ext = pathinfo($archive, PATHINFO_EXTENSION);
     switch ($ext) {
@@ -108,14 +85,9 @@ class Unzipper {
 
   }
 
-  /**
-   * Descomprima/extive um arquivo zip usando ZipArchive.
-   *
-   *@param $archive
-   *@param $destination
-   */
+  
   public static function extractZipArchive($archive, $destination) {
-    // Verifica se o servidor da web suporta descompactar.
+    
     if (!class_exists('ZipArchive')) {
       $GLOBALS['status'] = array('error' => 'Error: Your PHP version does not support unzip functionality.');
       return;
@@ -123,9 +95,9 @@ class Unzipper {
 
     $zip = new ZipArchive;
 
-    // Verifica se o arquivo é legível.
+   
     if ($zip->open($archive) === TRUE) {
-      // Check if destination is writable
+     
       if (is_writeable($destination . '/')) {
         $zip->extractTo($destination);
         $zip->close();
@@ -140,16 +112,9 @@ class Unzipper {
     }
   }
 
-  /**
-   * Descomprima um arquivo .gz.
-   *
-   * $archive de cordas @param
-   * O nome do arquivo, incluindo extensão de arquivo. Por exemplo, my_archive.zip.
-   * $destination de cordas @param
-   * O caminho relativo de destino onde extrair arquivos.
-   */
+ 
   public static function extractGzipFile($archive, $destination) {
-    // Verifique se o zlib está ativado
+
     if (!function_exists('gzopen')) {
       $GLOBALS['status'] = array('error' => 'Error: Your PHP has no zlib support enabled.');
       return;
@@ -165,16 +130,16 @@ class Unzipper {
     gzclose($gzipped);
     fclose($file);
 
-    // Verifica se o arquivo foi extraído.
+   
     if (file_exists($destination . '/' . $filename)) {
       $GLOBALS['status'] = array('success' => 'File unzipped successfully.');
 
-      // Se tivéssemos um arquivo .gz piche, vamos extrair o arquivo do piche.
+   
       if (pathinfo($destination . '/' . $filename, PATHINFO_EXTENSION) == 'tar') {
         $phar = new PharData($destination . '/' . $filename);
         if ($phar->extractTo($destination)) {
           $GLOBALS['status'] = array('success' => 'Extracted tar.gz archive successfully.');
-          // Deleta .tar.
+       
           unlink($destination . '/' . $filename);
         }
       }
@@ -185,21 +150,14 @@ class Unzipper {
 
   }
 
-  /**
-   * Descomprima/extraia um arquivo Rar usando RarArchive.
-   *
-   * $archive de cordas @param
-   * O nome do arquivo, incluindo extensão de arquivo. Por exemplo, my_archive.zip.
-   * $destination de cordas @param
-   * O caminho relativo de destino onde extrair arquivos.
-   */
+ 
   public static function extractRarArchive($archive, $destination) {
-    // Verifica se o servidor da web suporta descompactar.
+  
     if (!class_exists('RarArchive')) {
       $GLOBALS['status'] = array('error' => 'Error: Your PHP version does not support .rar archive functionality. <a class="info" href="http://php.net/manual/en/rar.installation.php" target="_blank">How to install RarArchive</a>');
       return;
     }
-    // Verifique se o arquivo é legível.
+ 
     if ($rar = RarArchive::open($archive)) {
       // Verifica se o destino é gravável
       if (is_writeable($destination . '/')) {
@@ -221,33 +179,17 @@ class Unzipper {
 
 }
 
-/**
- * Zíper de classe
- *
- * http://at2.php.net/manual/en/class.ziparchive.php#110719
- */
+
 class Zipper {
-  /**
-   * Adicionar arquivos e subsatratos em uma pasta para zip arquivo.
-   *
-   * $folder de corda @param
-   * Caminho para pasta que deve ser fechada.
-   *
-   * @param $zipFile ZipArchive
-   * Zipfile onde os arquivos acabam.
-   *
-   *@param int $exclusiveLength
-   * Número de texto a ser exclusivo do caminho do arquivo.
-   */
+ 
   private static function folderToZip($folder, &$zipFile, $exclusiveLength) {
     $handle = opendir($folder);
 
     while (FALSE !== $f = readdir($handle)) {
-      // Verifica se há caminho local/pai ou arquivo zipping em si e pule.
+   
       if ($f != '.' && $f != '..' && $f != basename(__FILE__)) {
         $filePath = "$folder/$f";
-        // Remove o prefixo do caminho do arquivo antes de adicionar ao zip.
-        $localPath = substr($filePath, $exclusiveLength);
+           $localPath = substr($filePath, $exclusiveLength);
 
         if (is_file($filePath)) {
           $zipFile->addFile($filePath, $localPath);
@@ -262,18 +204,7 @@ class Zipper {
     closedir($handle);
   }
 
-  /**
-   * Fecha uma pasta (incluindo a si mesmo).
-   *
-   * Uso:
-   * Zíper::zipDir ('path/to/sourceDir', 'path/to/out.zip');
-   *
-   * $sourcePath de cordas @param
-   * Caminho relativo do diretório a ser fechado.
-   *
-   * $outZipPath de corda @param
-   * Caminho relativo do arquivo zip de saída resultante.
-   */
+ 
   public static function zipDir($sourcePath, $outZipPath) {
     $pathInfo = pathinfo($sourcePath);
     $parentPath = $pathInfo['dirname'];
